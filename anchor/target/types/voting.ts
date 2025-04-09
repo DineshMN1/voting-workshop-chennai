@@ -175,6 +175,32 @@ export type Voting = {
           }
         },
         {
+          "name": "voterRecord",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "arg",
+                "path": "pollId"
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -217,6 +243,51 @@ export type Voting = {
         153,
         111
       ]
+    },
+    {
+      "name": "voterRecord",
+      "discriminator": [
+        178,
+        96,
+        138,
+        116,
+        143,
+        202,
+        115,
+        33
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "pollNotStarted",
+      "msg": "Poll has not started yet"
+    },
+    {
+      "code": 6001,
+      "name": "pollEnded",
+      "msg": "Poll has ended"
+    },
+    {
+      "code": 6002,
+      "name": "pollEndBeforeStart",
+      "msg": "Poll end time is before or equal to start time"
+    },
+    {
+      "code": 6003,
+      "name": "pollStartInPast",
+      "msg": "Poll start time is in the past"
+    },
+    {
+      "code": 6004,
+      "name": "pollEndInPast",
+      "msg": "Poll end time is in the past"
+    },
+    {
+      "code": 6005,
+      "name": "alreadyVoted",
+      "msg": "You have already voted in this poll"
     }
   ],
   "types": [
@@ -260,6 +331,22 @@ export type Voting = {
           {
             "name": "candidateAmount",
             "type": "u64"
+          },
+          {
+            "name": "totalVotes",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "voterRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hasVoted",
+            "type": "bool"
           }
         ]
       }
