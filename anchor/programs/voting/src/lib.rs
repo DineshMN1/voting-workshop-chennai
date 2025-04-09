@@ -8,12 +8,25 @@ declare_id!("coUnmi3oBUtwtd9fjeAvSsJssXh5A5xyPbhpewyzRVF");
 pub mod voting {
     use super::*;
 
-    pub fn initialize_poll(ctx: Context<InitializePoll>, 
-                            poll_id: u64,
-                            description: String,
-                            poll_start: u64,
-                            poll_end: u64
-                            ) -> Result<()> {
+    pub fn initialize_poll(
+        ctx: Context<InitializePoll>,
+        poll_id: u64,
+        description: String,
+        poll_start: u64,
+        poll_end: u64,
+    ) -> Result<()> {
+        let clock = Clock::get()?;
+        let current_time = clock.unix_timestamp as u64;
+
+        if poll_start <= current_time {
+            return Err(VotingError::PollStartInPast.into());
+        }
+        if poll_end <= poll_start {
+            return Err(VotingError::PollEndBeforeStart.into());
+        }
+        if poll_end <= current_time {
+            return Err(VotingError::PollEndInPast.into());
+        }
 
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
@@ -25,10 +38,11 @@ pub mod voting {
         Ok(())
     }
 
-    pub fn initialize_candidate(ctx: Context<InitializeCandidate>, 
-                                candidate_name: String,
-                                _poll_id: u64
-                            ) -> Result<()> {
+    pub fn initialize_candidate(
+        ctx: Context<InitializeCandidate>,
+        candidate_name: String,
+        _poll_id: u64,
+    ) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_name = candidate_name;
         candidate.candidate_votes = 0;
@@ -54,9 +68,15 @@ pub mod voting {
             return Err(VotingError::PollEnded.into());
         }
 
+        let voter_record = &mut ctx.accounts.voter_record;
+        if voter_record.has_voted {
+            return Err(VotingError::AlreadyVoted.into());
+        }
+        voter_record.has_voted = true;
+
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
-      
+
         poll.total_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
@@ -64,7 +84,12 @@ pub mod voting {
         msg!("Total votes in poll: {}", poll.total_votes);
         Ok(())
     }
+}
 
+#[account]
+#[derive(InitSpace)]
+pub struct VoterRecord {
+    pub has_voted: bool,
 }
 
 #[derive(Accounts)]
@@ -76,19 +101,28 @@ pub struct Vote<'info> {
     #[account(
         seeds = [poll_id.to_le_bytes().as_ref()],
         bump
-      )]
+    )]
     pub poll: Account<'info, Poll>,
 
     #[account(
-      mut,
-      seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
-      bump
+        mut,
+        seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
+        bump
     )]
     pub candidate: Account<'info, Candidate>,
 
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 8 + VoterRecord::INIT_SPACE,
+        seeds = [b"voter", signer.key().as_ref(), poll_id.to_le_bytes().as_ref()],
+        bump,
+        constraint = !voter_record.has_voted @ VotingError::AlreadyVoted,
+    )]
+    pub voter_record: Account<'info, VoterRecord>,
+
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]
@@ -100,15 +134,15 @@ pub struct InitializeCandidate<'info> {
         mut,
         seeds = [poll_id.to_le_bytes().as_ref()],
         bump
-      )]
+    )]
     pub poll: Account<'info, Poll>,
 
     #[account(
-      init,
-      payer = signer,
-      space = 8 + Candidate::INIT_SPACE,
-      seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
-      bump
+        init,
+        payer = signer,
+        space = 8 + Candidate::INIT_SPACE,
+        seeds = [poll_id.to_le_bytes().as_ref(), candidate_name.as_ref()],
+        bump
     )]
     pub candidate: Account<'info, Candidate>,
     pub system_program: Program<'info, System>,
@@ -128,11 +162,11 @@ pub struct InitializePoll<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     #[account(
-      init,
-      payer = signer,
-      space = 8 + Poll::INIT_SPACE,
-      seeds = [poll_id.to_le_bytes().as_ref()],
-      bump
+        init,
+        payer = signer,
+        space = 8 + Poll::INIT_SPACE,
+        seeds = [poll_id.to_le_bytes().as_ref()],
+        bump
     )]
     pub poll: Account<'info, Poll>,
     pub system_program: Program<'info, System>,
@@ -156,4 +190,12 @@ pub enum VotingError {
     PollNotStarted,
     #[msg("Poll has ended")]
     PollEnded,
+    #[msg("Poll end time is before or equal to start time")]
+    PollEndBeforeStart,
+    #[msg("Poll start time is in the past")]
+    PollStartInPast,
+    #[msg("Poll end time is in the past")]
+    PollEndInPast,
+    #[msg("You have already voted in this poll")]
+    AlreadyVoted,
 }
