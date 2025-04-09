@@ -56,7 +56,7 @@ pub mod voting {
 
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
-        
+      
         poll.total_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
