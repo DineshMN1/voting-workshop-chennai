@@ -12,7 +12,8 @@ pub mod voting {
                             poll_id: u64,
                             description: String,
                             poll_start: u64,
-                            poll_end: u64) -> Result<()> {
+                            poll_end: u64
+                            ) -> Result<()> {
 
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
@@ -20,6 +21,7 @@ pub mod voting {
         poll.poll_start = poll_start;
         poll.poll_end = poll_end;
         poll.candidate_amount = 0;
+        poll.total_votes = 0;
         Ok(())
     }
 
@@ -41,9 +43,12 @@ pub mod voting {
     pub fn vote(ctx: Context<Vote>, _candidate_name: String, _poll_id: u64) -> Result<()> {
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
+        let poll = &mut ctx.accounts.poll;
+        poll.total_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
         msg!("Votes: {}", candidate.candidate_votes);
+        msg!("Total votes in poll: {}", poll.total_votes);
         Ok(())
     }
 
@@ -129,4 +134,5 @@ pub struct Poll {
     pub poll_start: u64,
     pub poll_end: u64,
     pub candidate_amount: u64,
+    pub total_votes: u64,
 }
