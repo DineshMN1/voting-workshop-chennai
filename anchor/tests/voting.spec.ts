@@ -21,11 +21,13 @@ describe("Voting", () => {
   });
 
   it("initializes a poll", async () => {
+    const now = Math.floor(Date.now() / 1000);
+
     await votingProgram.methods.initializePoll(
       new anchor.BN(1),
       "What is your favorite color?",
-      new anchor.BN(100),
-      new anchor.BN(1739370789),
+      new anchor.BN(now - 10),
+      new anchor.BN(now + 1000),
     ).rpc();
 
     const [pollAddress] = PublicKey.findProgramAddressSync(
@@ -35,29 +37,33 @@ describe("Voting", () => {
 
     const poll = await votingProgram.account.poll.fetch(pollAddress);
 
-    console.log(poll);
+    console.log("Poll:", {
+      pollId: poll.pollId.toNumber(),
+      description: poll.description,
+      start: poll.pollStart.toNumber(),
+      end: poll.pollEnd.toNumber(),
+    });
 
     expect(poll.pollId.toNumber()).toBe(1);
     expect(poll.description).toBe("What is your favorite color?");
-    expect(poll.pollStart.toNumber()).toBe(100);
+    expect(poll.pollStart.toNumber()).toBe(now - 10);
   });
 
   it("initializes candidates", async () => {
-    await votingProgram.methods.initializeCandidate(
-      "Pink",
-      new anchor.BN(1),
-    ).rpc();
-    await votingProgram.methods.initializeCandidate(
-      "Blue",
-      new anchor.BN(1),
-    ).rpc();
+    await votingProgram.methods.initializeCandidate("Pink", new anchor.BN(1)).rpc();
+    await votingProgram.methods.initializeCandidate("Blue", new anchor.BN(1)).rpc();
 
     const [pinkAddress] = PublicKey.findProgramAddressSync(
       [new anchor.BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("Pink")],
       votingProgram.programId,
     );
     const pinkCandidate = await votingProgram.account.candidate.fetch(pinkAddress);
-    console.log(pinkCandidate);
+
+    console.log("Pink candidate:", {
+      name: pinkCandidate.candidateName,
+      votes: pinkCandidate.candidateVotes.toNumber(),
+    });
+
     expect(pinkCandidate.candidateVotes.toNumber()).toBe(0);
     expect(pinkCandidate.candidateName).toBe("Pink");
 
@@ -66,31 +72,36 @@ describe("Voting", () => {
       votingProgram.programId,
     );
     const blueCandidate = await votingProgram.account.candidate.fetch(blueAddress);
-    console.log(blueCandidate);
+
+    console.log("Blue candidate:", {
+      name: blueCandidate.candidateName,
+      votes: blueCandidate.candidateVotes.toNumber(),
+    });
+
     expect(blueCandidate.candidateVotes.toNumber()).toBe(0);
     expect(blueCandidate.candidateName).toBe("Blue");
   });
 
-  it("vote candidates", async () => {
-    await votingProgram.methods.vote(
-      "Pink",
-      new anchor.BN(1),
-    ).rpc();
-    await votingProgram.methods.vote(
-      "Blue",
-      new anchor.BN(1),
-    ).rpc();
-    await votingProgram.methods.vote(
-      "Pink",
-      new anchor.BN(1),
-    ).rpc();
+  it("votes for candidates", async () => {
+    try {
+      await votingProgram.methods.vote("Pink", new anchor.BN(1)).rpc();
+      await votingProgram.methods.vote("Blue", new anchor.BN(1)).rpc();
+      await votingProgram.methods.vote("Pink", new anchor.BN(1)).rpc();
+    } catch (e) {
+      console.error("Vote error:", e);
+    }
 
     const [pinkAddress] = PublicKey.findProgramAddressSync(
       [new anchor.BN(1).toArrayLike(Buffer, "le", 8), Buffer.from("Pink")],
       votingProgram.programId,
     );
     const pinkCandidate = await votingProgram.account.candidate.fetch(pinkAddress);
-    console.log(pinkCandidate);
+
+    console.log("Pink candidate after votes:", {
+      name: pinkCandidate.candidateName,
+      votes: pinkCandidate.candidateVotes.toNumber(),
+    });
+
     expect(pinkCandidate.candidateVotes.toNumber()).toBe(2);
     expect(pinkCandidate.candidateName).toBe("Pink");
 
@@ -99,7 +110,12 @@ describe("Voting", () => {
       votingProgram.programId,
     );
     const blueCandidate = await votingProgram.account.candidate.fetch(blueAddress);
-    console.log(blueCandidate);
+
+    console.log("Blue candidate after votes:", {
+      name: blueCandidate.candidateName,
+      votes: blueCandidate.candidateVotes.toNumber(),
+    });
+
     expect(blueCandidate.candidateVotes.toNumber()).toBe(1);
     expect(blueCandidate.candidateName).toBe("Blue");
   });
