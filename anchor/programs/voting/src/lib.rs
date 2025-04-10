@@ -14,6 +14,21 @@ pub mod voting {
                             poll_start: u64,
                             poll_end: u64
                             ) -> Result<()> {
+        let clock = Clock::get()?;
+        let current_time = clock.unix_timestamp as u64;
+
+        // Check if poll start time is in the past
+        if poll_start <= current_time {
+            return Err(VotingError::PollStartInPast.into());
+        }
+        // Check if poll end time is before the start time
+        if poll_end <= poll_start {
+            return Err(VotingError::PollEndBeforeStart.into());
+        }
+        // Check if poll end time is in the past
+        if poll_end <= current_time {
+            return Err(VotingError::PollEndInPast.into());
+        }
 
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
@@ -56,7 +71,7 @@ pub mod voting {
 
         let candidate = &mut ctx.accounts.candidate;
         candidate.candidate_votes += 1;
-        
+      
         poll.total_votes += 1;
 
         msg!("Voted for candidate: {}", candidate.candidate_name);
@@ -64,7 +79,6 @@ pub mod voting {
         msg!("Total votes in poll: {}", poll.total_votes);
         Ok(())
     }
-
 }
 
 #[derive(Accounts)]
@@ -89,7 +103,6 @@ pub struct Vote<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]
@@ -157,4 +170,10 @@ pub enum VotingError {
     PollNotStarted,
     #[msg("Poll has ended")]
     PollEnded,
+    #[msg("Poll end time is before or equal to start time")]
+    PollEndBeforeStart,
+    #[msg("Poll start time is in the past")]
+    PollStartInPast,
+    #[msg("Poll end time is in the past")]
+    PollEndInPast,
 }
