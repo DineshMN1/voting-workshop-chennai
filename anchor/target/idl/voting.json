@@ -143,6 +143,7 @@
         },
         {
           "name": "poll",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -282,6 +283,11 @@
       "code": 6005,
       "name": "AlreadyVoted",
       "msg": "You have already voted in this poll"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTimestamp",
+      "msg": "Invalid Unix timestamp"
     }
   ],
   "types": [

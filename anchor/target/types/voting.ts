@@ -149,6 +149,7 @@ export type Voting = {
         },
         {
           "name": "poll",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -288,6 +289,11 @@ export type Voting = {
       "code": 6005,
       "name": "alreadyVoted",
       "msg": "You have already voted in this poll"
+    },
+    {
+      "code": 6006,
+      "name": "invalidTimestamp",
+      "msg": "Invalid Unix timestamp"
     }
   ],
   "types": [

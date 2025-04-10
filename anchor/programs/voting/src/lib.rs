@@ -17,17 +17,27 @@ pub mod voting {
     ) -> Result<()> {
         let clock = Clock::get()?;
         let current_time = clock.unix_timestamp as u64;
-
+    
+        // Ensure poll_start is in the future
         if poll_start <= current_time {
             return Err(VotingError::PollStartInPast.into());
         }
-        if poll_end <= poll_start {
-            return Err(VotingError::PollEndBeforeStart.into());
-        }
+    
+        // Ensure poll_end is in the future and greater than poll_start
         if poll_end <= current_time {
             return Err(VotingError::PollEndInPast.into());
         }
-
+    
+        // Ensure poll_end is after poll_start
+        if poll_end <= poll_start {
+            return Err(VotingError::PollEndBeforeStart.into());
+        }
+    
+        // Ensure poll_end is a valid Unix Timestamp (i.e., it's a positive integer)
+        if poll_end <= 0 {
+            return Err(VotingError::InvalidTimestamp.into());
+        }
+    
         let poll = &mut ctx.accounts.poll;
         poll.poll_id = poll_id;
         poll.description = description;
@@ -35,8 +45,10 @@ pub mod voting {
         poll.poll_end = poll_end;
         poll.candidate_amount = 0;
         poll.total_votes = 0;
+    
         Ok(())
     }
+    
 
     pub fn initialize_candidate(
         ctx: Context<InitializeCandidate>,
@@ -99,6 +111,7 @@ pub struct Vote<'info> {
     pub signer: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [poll_id.to_le_bytes().as_ref()],
         bump
     )]
@@ -198,4 +211,6 @@ pub enum VotingError {
     PollEndInPast,
     #[msg("You have already voted in this poll")]
     AlreadyVoted,
+    #[msg("Invalid Unix timestamp")]
+    InvalidTimestamp,
 }
