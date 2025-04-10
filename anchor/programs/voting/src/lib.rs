@@ -17,12 +17,15 @@ pub mod voting {
         let clock = Clock::get()?;
         let current_time = clock.unix_timestamp as u64;
 
+        // Check if poll start time is in the past
         if poll_start <= current_time {
             return Err(VotingError::PollStartInPast.into());
         }
+        // Check if poll end time is before the start time
         if poll_end <= poll_start {
             return Err(VotingError::PollEndBeforeStart.into());
         }
+        // Check if poll end time is in the past
         if poll_end <= current_time {
             return Err(VotingError::PollEndInPast.into());
         }
@@ -76,7 +79,6 @@ pub mod voting {
         msg!("Total votes in poll: {}", poll.total_votes);
         Ok(())
     }
-
 }
 
 #[derive(Accounts)]
@@ -86,6 +88,7 @@ pub struct Vote<'info> {
     pub signer: Signer<'info>,
 
     #[account(
+        mut,
         seeds = [poll_id.to_le_bytes().as_ref()],
         bump
       )]
@@ -100,7 +103,6 @@ pub struct Vote<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(Accounts)]
 #[instruction(candidate_name: String, poll_id: u64)]

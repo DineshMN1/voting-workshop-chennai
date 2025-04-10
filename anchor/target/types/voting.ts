@@ -149,6 +149,7 @@ export type Voting = {
         },
         {
           "name": "poll",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -219,6 +220,18 @@ export type Voting = {
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "pollNotStarted",
+      "msg": "Poll has not started yet"
+    },
+    {
+      "code": 6001,
+      "name": "pollEnded",
+      "msg": "Poll has ended"
+    }
+  ],
   "types": [
     {
       "name": "candidate",
@@ -259,6 +272,10 @@ export type Voting = {
           },
           {
             "name": "candidateAmount",
+            "type": "u64"
+          },
+          {
+            "name": "totalVotes",
             "type": "u64"
           }
         ]

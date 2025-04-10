@@ -143,6 +143,7 @@
         },
         {
           "name": "poll",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -213,6 +214,18 @@
       ]
     }
   ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "PollNotStarted",
+      "msg": "Poll has not started yet"
+    },
+    {
+      "code": 6001,
+      "name": "PollEnded",
+      "msg": "Poll has ended"
+    }
+  ],
   "types": [
     {
       "name": "Candidate",
@@ -253,6 +266,10 @@
           },
           {
             "name": "candidate_amount",
+            "type": "u64"
+          },
+          {
+            "name": "total_votes",
             "type": "u64"
           }
         ]
